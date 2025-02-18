@@ -13,37 +13,42 @@
             <div class="mb-3">
                 <label for="file" class="form-label">Upload CSV/Excel File</label>
                 <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx">
+                {% if file_name %}
+                    <small class="form-text text-muted">Current file: {{ file_name }}</small>
+                {% endif %}
             </div>
             <button type="submit" class="btn btn-primary">Upload</button>
         </form>
 
         {% if projects %}
             <form action="{{ url_for('process_data') }}" method="post" class="mb-4">
-                <div class="mb-3">
-                    <label for="description" class="form-label">Select Description:</label>
-                    <select name="description" id="description" class="form-select">
-                        {% for description in projects.keys() %}
-                            <option value="{{ description }}">{{ description }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="project" class="form-label">Select Project:</label>
-                    <select name="project" id="project" class="form-select">
-                        {% for description, project_list in projects.items() %}
-                            {% for project in project_list %}
-                                <option value="{{ project }}">{{ project }}</option>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="description" class="form-label">Select Description:</label>
+                        <select name="description" id="description" class="form-select" onchange="updateDates()">
+                            {% for description in projects.keys() %}
+                                <option value="{{ description }}" {% if description == selected_description %}selected{% endif %}>{{ description }}</option>
                             {% endfor %}
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="date" class="form-label">Select Date:</label>
-                    <select name="date" id="date" class="form-select">
-                        {% for date in dates %}
-                            <option value="{{ date }}">{{ date }}</option>
-                        {% endfor %}
-                    </select>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="project" class="form-label">Select Project:</label>
+                        <select name="project" id="project" class="form-select">
+                            {% for description, project_list in projects.items() %}
+                                {% if description == selected_description %}
+                                    {% for project in project_list %}
+                                        <option value="{{ project }}">{{ project }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="date" class="form-label">Select Date:</label>
+                        <select name="date" id="date" class="form-select">
+                            <!-- Dates will be populated based on the selected description -->
+                        </select>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary">Process Data</button>
             </form>
@@ -75,5 +80,34 @@
             </table>
         {% endif %}
     </div>
+
+    <script>
+        const descriptionDates = JSON.parse('{{ description_dates | tojson | safe }}');
+        
+        function updateDates() {
+            const descriptionSelect = document.getElementById('description');
+            const dateSelect = document.getElementById('date');
+            const selectedDescription = descriptionSelect.value;
+            
+            // Clear existing options
+            dateSelect.innerHTML = '';
+            
+            // Populate dates based on the selected description
+            if (descriptionDates[selectedDescription]) {
+                descriptionDates[selectedDescription].forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    if (date === '{{ selected_date }}') {
+                        option.selected = true;
+                    }
+                    dateSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Call updateDates on page load to populate dates for the default selected description
+        document.addEventListener('DOMContentLoaded', updateDates);
+    </script>
 </body>
 </html>

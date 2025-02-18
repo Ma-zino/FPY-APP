@@ -13,18 +13,20 @@ selected_description = None
 selected_project = None
 selected_date = None
 file_path = None
+file_name = None
 projects = defaultdict(list)
-dates = set()
+description_dates = defaultdict(set)
 
 @app.route('/')
 def index():
-    global selected_description, projects, fpy_data, dates
+    global selected_description, selected_date, projects, fpy_data, description_dates, file_name
     sorted_fpy_data = dict(sorted(fpy_data.items()))  # Sort the fpy_data by hour
-    return render_template('index.html', selected_description=selected_description, projects=projects, fpy_data=sorted_fpy_data, dates=sorted(dates))
+    description_dates_list = {k: list(v) for k, v in description_dates.items()}  # Convert sets to lists
+    return render_template('index.html', selected_description=selected_description, selected_date=selected_date, projects=projects, fpy_data=sorted_fpy_data, description_dates=description_dates_list, file_name=file_name)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    global file_path, selected_description, projects, dates
+    global file_path, file_name, selected_description, projects, description_dates
     if 'file' not in request.files:
         return redirect(request.url)
     
@@ -35,6 +37,7 @@ def upload_file():
     # Save the uploaded file
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     file.save(file_path)
+    file_name = file.filename
     
     # Extract descriptions, projects, and dates
     extract_description(file_path)
@@ -81,13 +84,14 @@ def extract_projects(file_path):
         print("Error extracting projects from CSV file:", e)
 
 def extract_dates(file_path):
-    global dates
+    global description_dates
     try:
         df = pd.read_csv(file_path)
         for _, row in df.iterrows():
             date_str, _ = row.iloc[1].split()
-            dates.add(date_str)
-        print(f"Dates: {dates}")
+            description = row.iloc[3]
+            description_dates[description].add(date_str)
+        print(f"Description Dates: {description_dates}")
     except Exception as e:
         print("Error extracting dates from CSV file:", e)
 
@@ -117,7 +121,7 @@ def process_csv(file_path):
             hour = int(time_str.split(':')[0])
             state = row.iloc[2].lower()
             
-            if description == selected_description and project == selected_project and date_str == selected_date:
+            if description == selected_description and date_str == selected_date:
                 fpy_data[hour][0] += 1
                 if state == "pass":
                     fpy_data[hour][1] += 1
