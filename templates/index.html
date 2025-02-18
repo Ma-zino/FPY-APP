@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPY Web App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">FPY Web App</h1>
+        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="mb-4">
+            <div class="mb-3">
+                <label for="file" class="form-label">Upload CSV/Excel File</label>
+                <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx">
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+
+        {% if projects %}
+            <form action="{{ url_for('process_data') }}" method="post" class="mb-4">
+                <div class="mb-3">
+                    <label for="description" class="form-label">Select Description:</label>
+                    <select name="description" id="description" class="form-select">
+                        {% for description in projects.keys() %}
+                            <option value="{{ description }}">{{ description }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="project" class="form-label">Select Project:</label>
+                    <select name="project" id="project" class="form-select">
+                        {% for description, project_list in projects.items() %}
+                            {% for project in project_list %}
+                                <option value="{{ project }}">{{ project }}</option>
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="date" class="form-label">Select Date:</label>
+                    <select name="date" id="date" class="form-select">
+                        {% for date in dates %}
+                            <option value="{{ date }}">{{ date }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Process Data</button>
+            </form>
+        {% endif %}
+
+        {% if fpy_data %}
+            <h2>FPY Data</h2>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Hour</th>
+                        <th>FPY</th>
+                        <th>Parts Tested</th>
+                        <th>Pass Count</th>
+                        <th>Fail Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hour, data in fpy_data.items() %}
+                        <tr>
+                            <td>{{ hour }}</td>
+                            <td>{{ (data[1] / data[0] * 100) | round(2) if data[0] != 0 else 0 }}%</td>
+                            <td>{{ data[0] }}</td>
+                            <td>{{ data[1] }}</td>
+                            <td>{{ data[0] - data[1] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</body>
+</html>
