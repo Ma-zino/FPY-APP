@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FPY Web App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container mt-5">
@@ -20,24 +21,24 @@
             <button type="submit" class="btn btn-primary">Upload</button>
         </form>
 
-        {% if projects %}
+        {% if machines %}
             <form action="{{ url_for('process_data') }}" method="post" class="mb-4">
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label for="description" class="form-label">Select Description:</label>
                         <select name="description" id="description" class="form-select" onchange="updateDates()">
-                            {% for description in projects.keys() %}
+                            {% for description in machines.keys() %}
                                 <option value="{{ description }}" {% if description == selected_description %}selected{% endif %}>{{ description }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="project" class="form-label">Select Project:</label>
-                        <select name="project" id="project" class="form-select">
-                            {% for description, project_list in projects.items() %}
+                        <label for="machine" class="form-label">Select Machine:</label>
+                        <select name="machine" id="machine" class="form-select">
+                            {% for description, machine_list in machines.items() %}
                                 {% if description == selected_description %}
-                                    {% for project in project_list %}
-                                        <option value="{{ project }}">{{ project }}</option>
+                                    {% for machine in machine_list %}
+                                        <option value="{{ machine }}">{{ machine }}</option>
                                     {% endfor %}
                                 {% endif %}
                             {% endfor %}
@@ -76,8 +77,89 @@
                             <td>{{ data[0] - data[1] }}</td>
                         </tr>
                     {% endfor %}
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td><strong>{{ total_fpy | round(2) }}%</strong></td>
+                        <td><strong>{{ total_tested_parts }}</strong></td>
+                        <td><strong>{{ total_pass_parts }}</strong></td>
+                        <td><strong>{{ total_fail_parts }}</strong></td>
+                    </tr>
                 </tbody>
             </table>
+
+            <h2>FPY Chart</h2>
+            <canvas id="fpyChart"></canvas>
+            <script>
+                const fpyData = JSON.parse('{{ fpy_data | tojson | safe }}');
+                const hours = Object.keys(fpyData);
+                const fpyValues = hours.map(hour => (fpyData[hour][1] / fpyData[hour][0] * 100).toFixed(2));
+                const partsTested = hours.map(hour => fpyData[hour][0]);
+                const passCount = hours.map(hour => fpyData[hour][1]);
+                const failCount = hours.map(hour => fpyData[hour][0] - fpyData[hour][1]);
+
+                const ctx = document.getElementById('fpyChart').getContext('2d');
+                const fpyChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: hours,
+                        datasets: [
+                            {
+                                label: 'FPY (%)',
+                                data: fpyValues,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                yAxisID: 'y',
+                            },
+                            {
+                                label: 'Parts Tested',
+                                data: partsTested,
+                                borderColor: 'rgba(153, 102, 255, 1)',
+                                backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                                yAxisID: 'y1',
+                            },
+                            {
+                                label: 'Pass Count',
+                                data: passCount,
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                yAxisID: 'y1',
+                            },
+                            {
+                                label: 'Fail Count',
+                                data: failCount,
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                yAxisID: 'y1',
+                            }
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'FPY (%)'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Count'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                }
+                            }
+                        }
+                    }
+                });
+            </script>
         {% endif %}
     </div>
 
